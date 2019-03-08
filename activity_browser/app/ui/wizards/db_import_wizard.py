@@ -19,8 +19,14 @@ from activity_browser.app.signals import signals
 class DatabaseImportWizard(QtWidgets.QWizard):
     def __init__(self):
         super().__init__()
+        self.setModal(True)
         self.downloader = ABEcoinventDownloader()
         self.setWindowTitle('Database Import Wizard')
+        self.add_pages()
+        self.connect_signals()
+        self.show()
+
+    def add_pages(self):
         self.import_type_page = ImportTypePage(self)
         self.choose_dir_page = ChooseDirPage(self)
         self.db_name_page = DBNamePage(self)
@@ -41,8 +47,8 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         ]
         for page in self.pages:
             self.addPage(page)
-        self.show()
 
+    def connect_signals(self):
         # with this line, finish behaves like cancel and the wizard can be reused
         # db import is done when finish button becomes active
         self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.cleanup)
@@ -501,6 +507,8 @@ class MainWorkerThread(QtCore.QThread):
                 self.delete_canceled_db()
 
     def run_download(self):
+        if not hasattr(self.downloader, 'db_dict'):
+            self.downloader.db_dict = self.downloader.get_available_files()
         self.downloader.download()
         import_signals.download_complete.emit()
 
@@ -727,6 +735,7 @@ import_signals = ImportSignals()
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self):
         super().__init__()
+        self.setModal(True)
         self.setWindowTitle('Biosphere and LCIA methods')
         self.setLabelText(
             'Adding default biosphere and LCIA methods to project <b>{}</b>:'.format(
